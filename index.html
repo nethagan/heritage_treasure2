@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heritage Treasures - UNESCO World Heritage Analytics</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --bg-card-hover: rgba(51, 65, 85, 0.8);
+            --accent-gold: #f59e0b;
+            --accent-amber: #d97706;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-rose: #f43f5e;
+            --accent-indigo: #6366f1;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a 50%, #020617);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Header & Navigation */
+        header {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-amber));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: #000;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .brand-text h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 30%, var(--accent-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-text p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        nav {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-btn.active {
+            border-bottom: 2px solid var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .live-badge {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-emerald);
+            border: 1px solid var(--accent-emerald);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-emerald);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-emerald);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Main Layout */
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Banner Hero Section */
+        .hero-banner {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)), url('https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=1200') center/cover;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .hero-content h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .hero-content p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 700px;
+            line-height: 1.6;
+        }
+
+        /* Filters Bar */
+        .filter-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .select-input, .search-input {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .select-input:focus, .search-input:focus {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+
+        .search-box {
+            position: relative;
+            min-width: 260px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-box input {
+            padding-left: 40px;
+            width: 100%;
+        }
+
+        .reset-btn {
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--accent-rose);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background: var(--accent-rose);
+            color: #fff;
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--glass-shadow);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .kpi-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+        }
+
+        .icon-gold { background: rgba(245, 158, 11, 0.15); color: var(--accent-gold); }
+        .icon-cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
+        .icon-emerald { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .icon-rose { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+
+        .kpi-info h3 {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+            margin-top: 4px;
+        }
+
+        .kpi-subtext {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Analytics Grid */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 1.5rem;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-header h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-header h3 i {
+            color: var(--accent-gold);
+        }
+
+        .col-12 { grid-column: span 12; }
+        .col-8 { grid-column: span 8; }
+        .col-6 { grid-column: span 6; }
+        .col-4 { grid-column: span 4; }
+
+        @media (max-width: 1024px) {
+            .col-8, .col-6, .col-4 { grid-column: span 12; }
+        }
+
+        /* Map Container */
+        #map {
+            height: 420px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            z-index: 1;
+        }
+
+        /* Table Styling */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-secondary);
+            padding: 12px 16px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-cultural { background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .badge-natural { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-mixed { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        
+        .status-danger { color: var(--accent-rose); font-weight: 600; }
+        .status-safe { color: var(--accent-emerald); font-weight: 500; }
+
+        /* Report Modal / Section */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .doc-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .doc-section h2 {
+            font-family: 'Outfit', sans-serif;
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .doc-section p, .doc-section li {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 0.75rem;
+        }
+
+        footer {
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <div class="brand-icon">
+                <i class="fa-solid fa-landmark-dome"></i>
+            </div>
+            <div class="brand-text">
+                <h1>Heritage Treasures</h1>
+                <p>UNESCO World Heritage Interactive Data Analytics</p>
+            </div>
+        </div>
+
+        <nav>
+            <button class="nav-btn active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-line"></i> Dashboard</button>
+            <button class="nav-btn" onclick="switchTab('map-view')"><i class="fa-solid fa-earth-americas"></i> Map Explorer</button>
+            <button class="nav-btn" onclick="switchTab('data-table')"><i class="fa-solid fa-table"></i> Sites Directory</button>
+            <button class="nav-btn" onclick="switchTab('reports')"><i class="fa-solid fa-file-contract"></i> Project Docs</button>
+            <div class="live-badge">
+                <div class="pulse-dot"></div> Live Engine
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        
+        <!-- DASHBOARD TAB -->
+        <div id="tab-dashboard" class="tab-content active">
+            
+            <!-- Hero Banner -->
+            <div class="hero-banner">
+                <div class="hero-content">
+                    <h2>Global Cultural & Natural Heritage Analytics</h2>
+                    <p>Interactive data analytics platform providing comprehensive insights on 1,157+ UNESCO World Heritage Sites across 167 countries. Track regional distribution, category breakdowns, risk statuses, and historical inscription trends.</p>
+                </div>
+            </div>
+
+            <!-- Filter Panel -->
+            <div class="filter-panel">
+                <div class="filter-group">
+                    <span class="filter-label"><i class="fa-solid fa-filter"></i> Filter By:</span>
+                    <select id="filter-region" class="select-input" onchange="applyFilters()">
+                        <option value="All">All Regions</option>
+                        <option value="Europe & North America">Europe & North America</option>
+                        <option value="Asia & the Pacific">Asia & the Pacific</option>
+                        <option value="Latin America & Caribbean">Latin America & Caribbean</option>
+                        <option value="Africa">Africa</option>
+                        <option value="Arab States">Arab States</option>
+                    </select>
+
+                    <select id="filter-category" class="select-input" onchange="applyFilters()">
+                        <option value="All">All Categories</option>
+                        <option value="Cultural">Cultural</option>
+                        <option value="Natural">Natural</option>
+                        <option value="Mixed">Mixed</option>
+                    </select>
+
+                    <select id="filter-status" class="select-input" onchange="applyFilters()">
+                        <option value="All">All Risk Statuses</option>
+                        <option value="In Danger">In Danger 🚨</option>
+                        <option value="Not in Danger">Protected / Safe ✅</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" class="search-input" placeholder="Search site or country..." onkeyup="applyFilters()">
+                    </div>
+                    <button class="reset-btn" onclick="resetFilters()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                </div>
+            </div>
+
+            <!-- KPI Cards Grid -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon icon-gold">
+                        <i class="fa-solid fa-monument"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Total Heritage Sites</h3>
+                        <div class="kpi-value" id="kpi-total">1,157</div>
+                        <div class="kpi-subtext">Across 167 State Parties</div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon icon-cyan">
+                        <i class="fa-solid fa-building-columns"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Cultural Sites</h3>
+                        <div class="kpi-value" id="kpi-cultural">900</div>
+                        <div class="kpi-subtext">77.8% of Total Sites</div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon icon-emerald">
+                        <i class="fa-solid fa-tree"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Natural Sites</h3>
+                        <div class="kpi-value" id="kpi-natural">218</div>
+                        <div class="kpi-subtext">18.8% of Total Sites</div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon icon-rose">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <h3>Sites In Danger</h3>
+                        <div class="kpi-value" id="kpi-danger">56</div>
+                        <div class="kpi-subtext">Requires Urgent Protection</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Charts Grid -->
+            <div class="analytics-grid">
+                
+                <!-- Category Breakdown -->
+                <div class="card col-4">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-chart-pie"></i> Category Distribution</h3>
+                    </div>
+                    <canvas id="categoryChart" height="260"></canvas>
+                </div>
+
+                <!-- Regional Analysis -->
+                <div class="card col-8">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-chart-column"></i> Regional Distribution of Heritage Sites</h3>
+                    </div>
+                    <canvas id="regionChart" height="130"></canvas>
+                </div>
+
+                <!-- Inscription Trends over Time -->
+                <div class="card col-8">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-chart-line"></i> Inscription Trends Over Time (1978 - 2024)</h3>
+                    </div>
+                    <canvas id="trendChart" height="130"></canvas>
+                </div>
+
+                <!-- Risk Status Analysis -->
+                <div class="card col-4">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-shield-halved"></i> Endangered Risk Status</h3>
+                    </div>
+                    <canvas id="riskChart" height="260"></canvas>
+                </div>
+
+                <!-- Top 10 Countries -->
+                <div class="card col-12">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-ranking-star"></i> Top 10 Countries by UNESCO World Heritage Sites</h3>
+                    </div>
+                    <canvas id="countryChart" height="100"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- MAP VIEW TAB -->
+        <div id="tab-map-view" class="tab-content">
+            <div class="card col-12">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-map-location-dot"></i> Geographical Distribution Map</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">Interactive Leaflet GIS Map displaying heritage locations globally.</p>
+                </div>
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- SITES DIRECTORY TAB -->
+        <div id="tab-data-table" class="tab-content">
+            <div class="card col-12">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-list-check"></i> UNESCO World Heritage Sites Directory</h3>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);" id="filtered-count-label">Showing 10 of 1,157 records</span>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th># ID</th>
+                                <th>Site Name</th>
+                                <th>Country</th>
+                                <th>Region</th>
+                                <th>Category</th>
+                                <th>Year Inscribed</th>
+                                <th>Risk Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROJECT DOCS TAB -->
+        <div id="tab-reports" class="tab-content">
+            <div class="doc-section">
+                <h2><i class="fa-solid fa-book-open"></i> Project Executive Summary & Architecture</h2>
+                <p><strong>Project Name:</strong> Heritage Treasures - UNESCO Data Analytics</p>
+                <p><strong>Team Members:</strong> Avanthi, Madhava Sai, Praveen, Revanth</p>
+                <p><strong>Problem Statement:</strong> UNESCO World Heritage raw data is stored across complex datasets, making it challenging for researchers, decision-makers, and stakeholders to rapidly prioritize conservation efforts or analyze regional trends.</p>
+                <p><strong>Proposed Solution:</strong> A centralized, responsive web analytics engine using dynamic data processing to visualize heritage sites by category, country, region, risk level, and historical timeline.</p>
+            </div>
+
+            <div class="doc-section">
+                <h2><i class="fa-solid fa-gears"></i> Preprocessing & Analytics Engine Steps</h2>
+                <ul>
+                    <li><strong>Data Cleaning:</strong> Handled missing values in risk status and standardized regional naming conventions.</li>
+                    <li><strong>Category Encoding:</strong> Segregated sites into Cultural (Architecture, Cities), Natural (National Parks, Coral Reefs), and Mixed sites.</li>
+                    <li><strong>GIS Coordinates Processing:</strong> Extracted latitude/longitude coordinates for precise spatial mapping.</li>
+                    <li><strong>Aggregation & KPI Calculations:</strong> Grouped site counts by country and year of inscription to measure global growth trends.</li>
+                </ul>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Heritage Treasures Analytics Platform | Developed for UNESCO World Heritage Data Analytics</p>
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        // Sample Curated UNESCO Dataset
+        const heritageData = [
+            { id: 1, name: "Taj Mahal", country: "India", region: "Asia & the Pacific", category: "Cultural", year: 1983, status: "Not in Danger", lat: 27.1751, lng: 78.0421 },
+            { id: 2, name: "Great Wall of China", country: "China", region: "Asia & the Pacific", category: "Cultural", year: 1987, status: "Not in Danger", lat: 40.4319, lng: 116.5704 },
+            { id: 3, name: "Machu Picchu", country: "Peru", region: "Latin America & Caribbean", category: "Mixed", year: 1983, status: "Not in Danger", lat: -13.1631, lng: -72.5450 },
+            { id: 4, name: "Pyramids of Giza", country: "Egypt", region: "Arab States", category: "Cultural", year: 1979, status: "Not in Danger", lat: 29.9792, lng: 31.1342 },
+            { id: 5, name: "Yellowstone National Park", country: "United States", region: "Europe & North America", category: "Natural", year: 1978, status: "Not in Danger", lat: 44.4280, lng: -110.5885 },
+            { id: 6, name: "Galapagos Islands", country: "Ecuador", region: "Latin America & Caribbean", category: "Natural", year: 1978, status: "Not in Danger", lat: -0.9538, lng: -90.9656 },
+            { id: 7, name: "Historic Centre of Rome", country: "Italy", region: "Europe & North America", category: "Cultural", year: 1980, status: "Not in Danger", lat: 41.8902, lng: 12.4922 },
+            { id: 8, name: "Venice and its Lagoon", country: "Italy", region: "Europe & North America", category: "Cultural", year: 1987, status: "Not in Danger", lat: 45.4371, lng: 12.3326 },
+            { id: 9, name: "Petra", country: "Jordan", region: "Arab States", category: "Cultural", year: 1985, status: "Not in Danger", lat: 30.3285, lng: 35.4444 },
+            { id: 10, name: "Angkor Wat", country: "Cambodia", region: "Asia & the Pacific", category: "Cultural", year: 1992, status: "Not in Danger", lat: 13.4125, lng: 103.8670 },
+            { id: 11, name: "Serengeti National Park", country: "Tanzania", region: "Africa", category: "Natural", year: 1981, status: "Not in Danger", lat: -2.3333, lng: 34.8333 },
+            { id: 12, name: "Great Barrier Reef", country: "Australia", region: "Asia & the Pacific", category: "Natural", year: 1981, status: "Not in Danger", lat: -18.2871, lng: 147.6992 },
+            { id: 13, name: "Historic Centre of Vienna", country: "Austria", region: "Europe & North America", category: "Cultural", year: 2001, status: "In Danger", lat: 48.2082, lng: 16.3738 },
+            { id: 14, name: "Old City of Jerusalem", country: "Jerusalem", region: "Arab States", category: "Cultural", year: 1981, status: "In Danger", lat: 31.7767, lng: 35.2345 },
+            { id: 15, name: "Tropical Rainforest Heritage of Sumatra", country: "Indonesia", region: "Asia & the Pacific", category: "Natural", year: 2004, status: "In Danger", lat: -2.5000, lng: 101.5000 },
+            { id: 16, name: "Everglades National Park", country: "United States", region: "Europe & North America", category: "Natural", year: 1979, status: "In Danger", lat: 25.2866, lng: -80.8987 },
+            { id: 17, name: "Kaziranga National Park", country: "India", region: "Asia & the Pacific", category: "Natural", year: 1985, status: "Not in Danger", lat: 26.5775, lng: 93.1711 },
+            { id: 18, name: "Mount Kilimanjaro National Park", country: "Tanzania", region: "Africa", category: "Natural", year: 1987, status: "Not in Danger", lat: -3.0674, lng: 37.3556 },
+            { id: 19, name: "Mont-Saint-Michel", country: "France", region: "Europe & North America", category: "Cultural", year: 1979, status: "Not in Danger", lat: 48.6361, lng: -1.5115 },
+            { id: 20, name: "Acropolis, Athens", country: "Greece", region: "Europe & North America", category: "Cultural", year: 1987, status: "Not in Danger", lat: 37.9715, lng: 23.7257 }
+        ];
+
+        let filteredData = [...heritageData];
+        let mapObj = null;
+        let mapMarkers = [];
+
+        // Charts Instances
+        let categoryChartInst, regionChartInst, trendChartInst, riskChartInst, countryChartInst;
+
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            if (tabId === 'map-view' && !mapObj) {
+                setTimeout(initMap, 100);
+            }
+        }
+
+        // Initialize App Charts
+        function initCharts() {
+            // 1. Category Chart
+            const ctxCat = document.getElementById('categoryChart').getContext('2d');
+            categoryChartInst = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Cultural', 'Natural', 'Mixed'],
+                    datasets: [{
+                        data: [900, 218, 39],
+                        backgroundColor: ['#6366f1', '#10b981', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } }
+                }
+            });
+
+            // 2. Region Chart
+            const ctxReg = document.getElementById('regionChart').getContext('2d');
+            regionChartInst = new Chart(ctxReg, {
+                type: 'bar',
+                data: {
+                    labels: ['Europe & N. America', 'Asia & Pacific', 'Latin America', 'Africa', 'Arab States'],
+                    datasets: [{
+                        label: 'Heritage Sites',
+                        data: [545, 277, 146, 98, 91],
+                        backgroundColor: '#06b6d4',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // 3. Trend Line Chart
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            trendChartInst = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: ['1978', '1985', '1995', '2005', '2015', '2024'],
+                    datasets: [{
+                        label: 'Cumulative Sites Inscribed',
+                        data: [12, 215, 469, 812, 1031, 1157],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { labels: { color: '#94a3b8' } } }
+                }
+            });
+
+            // 4. Risk Status Chart
+            const ctxRisk = document.getElementById('riskChart').getContext('2d');
+            riskChartInst = new Chart(ctxRisk, {
+                type: 'pie',
+                data: {
+                    labels: ['Safe / Protected', 'In Danger 🚨'],
+                    datasets: [{
+                        data: [1101, 56],
+                        backgroundColor: ['#10b981', '#f43f5e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } }
+                }
+            });
+
+            // 5. Country Ranking Chart
+            const ctxCountry = document.getElementById('countryChart').getContext('2d');
+            countryChartInst = new Chart(ctxCountry, {
+                type: 'bar',
+                data: {
+                    labels: ['Italy', 'China', 'Germany', 'France', 'Spain', 'India', 'Mexico', 'UK', 'Russia', 'Iran'],
+                    datasets: [{
+                        label: 'Number of Sites',
+                        data: [59, 57, 52, 52, 50, 42, 35, 33, 30, 27],
+                        backgroundColor: '#818cf8',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Initialize Leaflet Map
+        function initMap() {
+            mapObj = L.map('map').setView([20, 0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(mapObj);
+
+            updateMapMarkers();
+        }
+
+        function updateMapMarkers() {
+            if (!mapObj) return;
+            mapMarkers.forEach(m => mapObj.removeLayer(m));
+            mapMarkers = [];
+
+            filteredData.forEach(site => {
+                const marker = L.circleMarker([site.lat, site.lng], {
+                    radius: 8,
+                    fillColor: site.status === 'In Danger' ? '#f43f5e' : (site.category === 'Cultural' ? '#6366f1' : (site.category === 'Natural' ? '#10b981' : '#f59e0b')),
+                    color: '#fff',
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(mapObj);
+
+                marker.bindPopup(`
+                    <div style="font-family: Inter, sans-serif;">
+                        <h4 style="margin:0 0 4px 0; color:#0f172a;">${site.name}</h4>
+                        <p style="margin:0; font-size:12px; color:#475569;"><b>Country:</b> ${site.country} (${site.region})</p>
+                        <p style="margin:2px 0; font-size:12px; color:#475569;"><b>Category:</b> ${site.category} | <b>Year:</b> ${site.year}</p>
+                        <p style="margin:2px 0; font-size:12px; font-weight:600; color:${site.status === 'In Danger' ? '#dc2626' : '#16a34a'};">Status: ${site.status}</p>
+                    </div>
+                `);
+
+                mapMarkers.push(marker);
+            });
+        }
+
+        // Populate Table
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            filteredData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>#${item.id}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.country}</td>
+                    <td>${item.region}</td>
+                    <td><span class="badge badge-${item.category.toLowerCase()}">${item.category}</span></td>
+                    <td>${item.year}</td>
+                    <td><span class="${item.status === 'In Danger' ? 'status-danger' : 'status-safe'}">${item.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('filtered-count-label').innerText = `Showing ${filteredData.length} of ${heritageData.length} sampled records`;
+        }
+
+        // Apply Filters
+        function applyFilters() {
+            const reg = document.getElementById('filter-region').value;
+            const cat = document.getElementById('filter-category').value;
+            const st = document.getElementById('filter-status').value;
+            const query = document.getElementById('search-input').value.toLowerCase();
+
+            filteredData = heritageData.filter(item => {
+                const matchReg = reg === 'All' || item.region === reg;
+                const matchCat = cat === 'All' || item.category === cat;
+                const matchSt = st === 'All' || item.status === st;
+                const matchSearch = item.name.toLowerCase().includes(query) || item.country.toLowerCase().includes(query);
+                return matchReg && matchCat && matchSt && matchSearch;
+            });
+
+            // Update KPI Card Numbers based on filter
+            document.getElementById('kpi-total').innerText = filteredData.length;
+            document.getElementById('kpi-cultural').innerText = filteredData.filter(d => d.category === 'Cultural').length;
+            document.getElementById('kpi-natural').innerText = filteredData.filter(d => d.category === 'Natural').length;
+            document.getElementById('kpi-danger').innerText = filteredData.filter(d => d.status === 'In Danger').length;
+
+            renderTable();
+            updateMapMarkers();
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-region').value = 'All';
+            document.getElementById('filter-category').value = 'All';
+            document.getElementById('filter-status').value = 'All';
+            document.getElementById('search-input').value = '';
+            applyFilters();
+        }
+
+        // Document Ready Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            renderTable();
+        });
+    </script>
+</body>
+</html>
